@@ -1,12 +1,16 @@
 from selenium.webdriver.chrome.options import Options
 from selenium import webdriver
-from lxml import html
+import asyncio
+import aiohttp
 import requests
+import logging
 import time
 
 lvr_url = 'https://plvr.land.moi.gov.tw/DownloadOpenData'
 download_url = 'https://plvr.land.moi.gov.tw//DownloadSeason'
 chrome_driver = '/Users/arthur/Documents/Lvr_land/lvrland_crawler/chromedriver'
+FORMAT = '%(asctime)s %(levelname)s: %(message)s'
+logging.basicConfig(level=logging.INFO, format=FORMAT)
 
 
 def get_driver():
@@ -27,6 +31,61 @@ def get_history_seasons():
     seasons = sorted(options)[7:-2]
     driver.quit()
     return seasons
+
+
+class AsnycDownload(object):
+    def __init__(self, request_obj, max_threads):
+        self.requests_obj = request_obj
+        self.results = []
+        self.max_threads = max_threads
+        self.work_queue = asyncio.Queue()
+
+    def __download_csv(self, filename, csv_content):
+        try:
+            open(filename, 'w').write(csv_content)
+            logging.info(f'{filename} downloaded')
+        except Exception as e:
+            raise e
+        self.results.append(filename)
+
+    async def get_body(self, req):
+        async with aiohttp.ClientSession() as session:
+            async with session.get(req.get('url'), timeout=30) as response:
+                assert response.status == 200
+                csv_content = await response.text()
+                return req.get('filename'), csv_content
+
+    async def get_results(self, req):
+        url, csv_content = await self.get_body(req)
+        self.__download_csv(url, csv_content)
+        return 'Completed'
+
+    async def handle_tasks(self, task_id):
+        while not self.work_queue.empty():
+            current_req = await self.work_queue.get()
+            try:
+                task_status = await self.get_results(current_req)
+            except:
+                self.work_queue.put_nowait(current_req)
+                filename = current_req['filename']
+                logging.error(f'{filename} failed, start retry...')
+
+    def eventloop(self):
+        [self.work_queue.put_nowait(req) for req in self.requests_obj]
+        loop = asyncio.get_event_loop()
+        tasks = [self.handle_tasks(task_id) for task_id in range(self.max_threads)]
+        loop.run_until_complete(asyncio.wait(tasks))
+        loop.close()
+
+
+def get_reuqest_urls(seasons, request_param):
+    for s in seasons:
+        for trade_type, citys in request_param.items():
+            for c in citys:
+                req_url = f'{download_url}?season={s}&fileName={c}_lvr_land_{trade_type}.csv'
+                year, season = s.split('S')
+                filename = f'./lvr_src/{year}_{season}_{c}_{trade_type}.csv'
+                yield {'filename': filename, 'url': req_url}
 
 
 def download_csv(seasons, request_param):
@@ -54,9 +113,15 @@ def run():
         'A': ['A', 'E', 'F'],
         'B': ['B', 'H'],
     }
-    download_csv(seasons, request_param)
+
+    # download_csv(seasons, request_param)
+    request_obj = list(get_reuqest_urls(seasons, request_param))
+    logging.info(f'total urls: [{len(request_obj)}]')
+    async_download = AsnycDownload(request_obj, 16)
+    async_download.eventloop()
 
 
 if __name__ == '__main__':
+    start_time = time.time()
     run()
-    # pass
+    logging.info("runtime --- %s seconds ---" % (time.time() - start_time))
