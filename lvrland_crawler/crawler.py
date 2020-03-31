@@ -5,6 +5,8 @@ import aiohttp
 import requests
 import logging
 import time
+import os.path
+import os
 
 lvr_url = 'https://plvr.land.moi.gov.tw/DownloadOpenData'
 download_url = 'https://plvr.land.moi.gov.tw//DownloadSeason'
@@ -40,9 +42,12 @@ class AsnycDownload(object):
         self.max_threads = max_threads
         self.work_queue = asyncio.Queue()
 
-    def __download_csv(self, filename, csv_content):
+    def __download_csv(self, req, csv_content):
         try:
-            open(filename, 'w').write(csv_content)
+            filepath = req['filepath']
+            filename = req['filename']
+            with open(f'{filepath}{filename}', 'w') as f:
+                f.write(csv_content)
             logging.info(f'{filename} downloaded')
         except Exception as e:
             raise e
@@ -53,11 +58,11 @@ class AsnycDownload(object):
             async with session.get(req.get('url'), timeout=30) as response:
                 assert response.status == 200
                 csv_content = await response.text()
-                return req.get('filename'), csv_content
+                return csv_content
 
     async def get_results(self, req):
-        url, csv_content = await self.get_body(req)
-        self.__download_csv(url, csv_content)
+        csv_content = await self.get_body(req)
+        self.__download_csv(req, csv_content)
         return 'Completed'
 
     async def handle_tasks(self, task_id):
@@ -66,9 +71,9 @@ class AsnycDownload(object):
             try:
                 task_status = await self.get_results(current_req)
             except:
-                self.work_queue.put_nowait(current_req)
                 filename = current_req['filename']
                 logging.error(f'{filename} failed, start retry...')
+                self.work_queue.put_nowait(current_req)
 
     def eventloop(self):
         [self.work_queue.put_nowait(req) for req in self.requests_obj]
@@ -84,8 +89,11 @@ def get_reuqest_urls(seasons, request_param):
             for c in citys:
                 req_url = f'{download_url}?season={s}&fileName={c}_lvr_land_{trade_type}.csv'
                 year, season = s.split('S')
-                filename = f'./lvr_src/{year}_{season}_{c}_{trade_type}.csv'
-                yield {'filename': filename, 'url': req_url}
+                filepath = f'./lvr_src/{year}/{season}/{trade_type}/{c}/'
+                if not os.path.isdir(filepath):
+                    os.makedirs(filepath)
+                filename = f'{c}_lvr_land_{trade_type}.csv'
+                yield {'filepath': filepath, 'filename': filename, 'url': req_url}
 
 
 def download_csv(seasons, request_param):
@@ -113,11 +121,10 @@ def run():
         'A': ['A', 'E', 'F'],
         'B': ['B', 'H'],
     }
-
     # download_csv(seasons, request_param)
     request_obj = list(get_reuqest_urls(seasons, request_param))
     logging.info(f'total urls: [{len(request_obj)}]')
-    async_download = AsnycDownload(request_obj, 16)
+    async_download = AsnycDownload(request_obj, 10)
     async_download.eventloop()
 
 
