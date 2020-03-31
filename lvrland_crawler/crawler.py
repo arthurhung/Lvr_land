@@ -34,11 +34,14 @@ def get_history_seasons():
     driver.get(lvr_url)
     driver.execute_script(
         '''$('.tabOpenDataCss').empty();loadAjaxUrl('DownloadHistory_ajax_list','tab_opendata_history_content');''')
-    options = [i.get_attribute('value') for i in driver.find_elements_by_xpath('//*[@id="historySeason_id"]/option')]
+    season_options = [
+        i.get_attribute('value') for i in driver.find_elements_by_xpath('//*[@id="historySeason_id"]/option')
+    ]
     # 取出【103年第1季】~【108年第2季】
-    seasons = sorted(options)[7:-2]
+    # seasons = sorted(options)[7:-2]
     driver.quit()
-    return seasons
+
+    return sorted(season_options)
 
 
 class AsnycDownload(object):
@@ -95,8 +98,9 @@ def get_reuqest_urls(seasons, request_param):
     交易類別 A:不動產買賣, B:預售屋買賣
     '''
     for s in seasons:
-        for trade_type, citys in request_param.items():
-            for c in citys:
+        for r in request_param['params']:
+            trade_type = r['trade_type']
+            for c in r['citys']:
                 req_url = f'{download_url}?season={s}&fileName={c}_lvr_land_{trade_type}.csv'
                 year, season = s.split('S')
                 filepath = f'./lvr_src/{year}/{season}/{trade_type}/{c}/'
@@ -106,10 +110,17 @@ def get_reuqest_urls(seasons, request_param):
                 yield {'filepath': filepath, 'filename': filename, 'url': req_url}
 
 
+def get_target_sessons(season_options, request_param):
+    start_seaion_idx = season_options.index(request_param['start_season'])
+    end_season_idx = season_options.index(request_param['end_season'])
+    return season_options[start_seaion_idx:end_season_idx + 1]
+
+
 def download_csv(seasons, request_param):
     for s in seasons:
-        for trade_type, citys in request_param.items():
-            for c in citys:
+        for r in request_param['param']:
+            trade_type = r['trade_type']
+            for c in r['citys']:
                 req_url = f'{download_url}?season={s}&fileName={c}_lvr_land_{trade_type}.csv'
                 print(f'request url: {req_url}')
                 file = requests.get(req_url)
@@ -121,12 +132,12 @@ def download_csv(seasons, request_param):
 
 
 def run():
-    seasons = get_history_seasons()
-    # key為交易類別，value為縣市代號array
+    season_options = get_history_seasons()
     request_param = get_request_param()
-    # download_csv(seasons, request_param)
+    seasons = get_target_sessons(season_options, request_param)
+    logging.info(f'total request seasons: {len(seasons)}, {seasons}')
     request_obj = list(get_reuqest_urls(seasons, request_param))
-    logging.info(f'total urls: [{len(request_obj)}]')
+    logging.info(f'total request objects: [{len(request_obj)}]')
     async_download = AsnycDownload(request_obj, 10)
     async_download.eventloop()
 

@@ -1,11 +1,21 @@
 {
-    "A": [
-        "A",
-        "E",
-        "F"
-    ],
-    "B": [
-        "B",
-        "H"
+    "start_season": "103S1",
+    "end_season": "108S2",
+    "params": [
+        {
+            "trade_type": "A",
+            "citys": [
+                "A",
+                "E",
+                "F"
+            ]
+        },
+        {
+            "trade_type": "B",
+            "citys": [
+                "B",
+                "H"
+            ]
+        }
     ]
 }
