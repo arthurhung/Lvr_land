@@ -5,6 +5,7 @@ import aiohttp
 import requests
 import logging
 import time
+import json
 import os.path
 import os
 
@@ -13,6 +14,11 @@ download_url = 'https://plvr.land.moi.gov.tw//DownloadSeason'
 chrome_driver = '/Users/arthur/Documents/Lvr_land/lvrland_crawler/chromedriver'
 FORMAT = '%(asctime)s %(levelname)s: %(message)s'
 logging.basicConfig(level=logging.INFO, format=FORMAT)
+
+
+def get_request_param():
+    with open('request.json') as f:
+        return json.load(f)
 
 
 def get_driver():
@@ -84,6 +90,10 @@ class AsnycDownload(object):
 
 
 def get_reuqest_urls(seasons, request_param):
+    '''
+    縣市代號 A:台北市, F:新北市, E:高雄市, B: 台中市, H:桃園市
+    交易類別 A:不動產買賣, B:預售屋買賣
+    '''
     for s in seasons:
         for trade_type, citys in request_param.items():
             for c in citys:
@@ -97,11 +107,6 @@ def get_reuqest_urls(seasons, request_param):
 
 
 def download_csv(seasons, request_param):
-    '''
-    縣市代號 A:台北市, F:新北市, E:高雄市, B: 台中市, H:桃園市
-    交易類別 A:不動產買賣, B:預售屋買賣
-    '''
-    # key為交易類別，value為縣市代號array
     for s in seasons:
         for trade_type, citys in request_param.items():
             for c in citys:
@@ -117,10 +122,8 @@ def download_csv(seasons, request_param):
 
 def run():
     seasons = get_history_seasons()
-    request_param = {
-        'A': ['A', 'E', 'F'],
-        'B': ['B', 'H'],
-    }
+    # key為交易類別，value為縣市代號array
+    request_param = get_request_param()
     # download_csv(seasons, request_param)
     request_obj = list(get_reuqest_urls(seasons, request_param))
     logging.info(f'total urls: [{len(request_obj)}]')
