@@ -1,5 +1,3 @@
-from selenium.webdriver.chrome.options import Options
-from selenium import webdriver
 from lxml import html
 import asyncio
 import aiohttp
@@ -20,20 +18,6 @@ logging.basicConfig(level=logging.INFO, format=FORMAT)
 def get_request_param():
     with open('request.json') as f:
         return json.load(f)
-
-
-def get_driver():
-    chrome_options = Options()
-    chrome_options.add_argument('--headless')
-    driver = webdriver.Chrome('../chromedriver', chrome_options=chrome_options)
-    return driver
-
-
-def get_history_seasons():
-    source = requests.get(seasons_url).content
-    tree = html.fromstring(source)
-    season_options = tree.xpath('//*[@id="historySeason_id"]/option/@value')
-    return sorted(season_options)
 
 
 class AsnycDownload(object):
@@ -82,6 +66,13 @@ class AsnycDownload(object):
         tasks = [self.handle_tasks(task_id) for task_id in range(self.max_threads)]
         loop.run_until_complete(asyncio.wait(tasks))
         loop.close()
+
+
+def get_history_seasons():
+    source = requests.get(seasons_url).content
+    tree = html.fromstring(source)
+    season_options = tree.xpath('//*[@id="historySeason_id"]/option/@value')
+    return sorted(season_options)
 
 
 def get_reuqest_urls(seasons, request_param):
