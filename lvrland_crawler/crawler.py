@@ -1,5 +1,6 @@
 from selenium.webdriver.chrome.options import Options
 from selenium import webdriver
+from lxml import html
 import asyncio
 import aiohttp
 import requests
@@ -11,7 +12,7 @@ import os
 
 lvr_url = 'https://plvr.land.moi.gov.tw/DownloadOpenData'
 download_url = 'https://plvr.land.moi.gov.tw//DownloadSeason'
-chrome_driver = '/Users/arthur/Documents/Lvr_land/lvrland_crawler/chromedriver'
+seasons_url = 'https://plvr.land.moi.gov.tw/DownloadSeason_ajax_list'
 FORMAT = '%(asctime)s %(levelname)s: %(message)s'
 logging.basicConfig(level=logging.INFO, format=FORMAT)
 
@@ -29,18 +30,9 @@ def get_driver():
 
 
 def get_history_seasons():
-    driver = get_driver()
-    driver.implicitly_wait(15)
-    driver.get(lvr_url)
-    driver.execute_script(
-        '''$('.tabOpenDataCss').empty();loadAjaxUrl('DownloadHistory_ajax_list','tab_opendata_history_content');''')
-    season_options = [
-        i.get_attribute('value') for i in driver.find_elements_by_xpath('//*[@id="historySeason_id"]/option')
-    ]
-    # 取出【103年第1季】~【108年第2季】
-    # seasons = sorted(options)[7:-2]
-    driver.quit()
-
+    source = requests.get(seasons_url).content
+    tree = html.fromstring(source)
+    season_options = tree.xpath('//*[@id="historySeason_id"]/option/@value')
     return sorted(season_options)
 
 
@@ -114,21 +106,6 @@ def get_target_sessons(season_options, request_param):
     start_seaion_idx = season_options.index(request_param['start_season'])
     end_season_idx = season_options.index(request_param['end_season'])
     return season_options[start_seaion_idx:end_season_idx + 1]
-
-
-def download_csv(seasons, request_param):
-    for s in seasons:
-        for r in request_param['param']:
-            trade_type = r['trade_type']
-            for c in r['citys']:
-                req_url = f'{download_url}?season={s}&fileName={c}_lvr_land_{trade_type}.csv'
-                print(f'request url: {req_url}')
-                file = requests.get(req_url)
-                year, season = s.split('S')
-                # print(f'year: {year}, season: {season}')
-                filename = f'./lvr_src/{year}_{season}_{c}_{trade_type}.csv'
-                open(filename, 'wb').write(file.content)
-                print(f'{filename} downloaded')
 
 
 def run():
