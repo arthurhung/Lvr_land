@@ -1,3 +1,5 @@
 lxml
 requests
 aiohttp
+cn2an
+pandas
