@@ -12,7 +12,8 @@ lvr_url = 'https://plvr.land.moi.gov.tw/DownloadOpenData'
 download_url = 'https://plvr.land.moi.gov.tw//DownloadSeason'
 seasons_url = 'https://plvr.land.moi.gov.tw/DownloadSeason_ajax_list'
 FORMAT = '%(asctime)s %(levelname)s: %(message)s'
-logging.basicConfig(level=logging.INFO, format=FORMAT)
+LOG_LEVEL = logging.INFO
+logging.basicConfig(level=LOG_LEVEL, format=FORMAT)
 
 
 def get_request_param():
@@ -31,9 +32,10 @@ class AsnycDownload(object):
         try:
             filepath = req['filepath']
             filename = req['filename']
+            url = req['url']
             with open(f'{filepath}{filename}', 'w') as f:
                 f.write(csv_content)
-            logging.info(f'{filename} downloaded')
+            logging.debug(f'{url} downloaded')
         except Exception as e:
             raise e
         self.results.append(filename)
@@ -47,6 +49,10 @@ class AsnycDownload(object):
 
     async def get_results(self, req):
         csv_content = await self.get_body(req)
+        if '系統發生錯誤，請洽系統管理人員' in csv_content:
+            url = req['url']
+            logging.error(f'{url} FILE not found')
+            return 'File not found'
         self.__download_csv(req, csv_content)
         return 'Completed'
 
@@ -108,6 +114,7 @@ def run():
     logging.info(f'total request objects: [{len(request_obj)}]')
     async_download = AsnycDownload(request_obj, 10)
     async_download.eventloop()
+    logging.info(f'total downloaded: [{len(async_download.results)}]')
 
 
 if __name__ == '__main__':
