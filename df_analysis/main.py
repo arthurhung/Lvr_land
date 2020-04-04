@@ -57,10 +57,17 @@ class LvrLandAnalysis(object):
             '''
             樓層資料因包含有中文數字+層數, 數字, 地下層，將其轉為integer
             '''
-            if type(x) == str and not x.isdigit():
-                if x != '地下層':
-                    x = cn2an.cn2an(x.strip("層"))
-                    return x
+            if type(x) == str:
+                if x.isdigit():
+                    return int(x)
+                else:
+                    if x != '地下層':
+                        x = cn2an.cn2an(x.strip("層"))
+                        return x
+            elif type(x) == int:
+                return x
+            else:
+                logging.error(f'convert_floor2int fail value: [{x}], type: [{type(x)}]')
             return 0
 
         return self.df_lvrland['total floor number'].fillna(0).map(convert_floor2int) >= 13
@@ -91,7 +98,11 @@ class LvrLandAnalysis(object):
 
     def df2csv(self, df, filename):
         try:
-            pd.DataFrame(df).to_csv(f'{filename}', index=0)
+            pd.DataFrame(df).to_csv(
+                f'{filename}',
+                index=0,
+                encoding='utf_8_sig',
+            )
             logging.info(f'save succeed: {filename}')
             return f'save succeed: {filename}'
         except:
@@ -117,12 +128,22 @@ def csv_to_es(filename):
     )
     with open(filename) as f:
         reader = csv.DictReader(f)
-        helpers.bulk(es, reader, index='csv_data', raise_on_error=False)
+        helpers.bulk(
+            es,
+            reader,
+            index='csv_data',
+            raise_on_error=False,
+        )
 
 
 if __name__ == '__main__':
     # filter.csv
-    if sys.argv[1] != 'update':
+    try:
+        args = sys.argv[1]
+    except:
+        args = 'main'
+
+    if args != 'update':
         lvr_land = LvrLandAnalysis()
         is_self_residence = lvr_land.is_self_residence()
         is_self_residence_building = lvr_land.is_self_residence_building()
