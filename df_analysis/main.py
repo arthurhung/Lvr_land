@@ -1,10 +1,12 @@
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, helpers
 import pandas as pd
 import numpy as np
+import sys
 import glob
 import cn2an
 import logging
-
+import csv
+import json
 
 CSV_PATH = '../lvrland_crawler/lvr_src/*/*/*/*/*_lvr_land_*.csv'
 FORMAT = '%(asctime)s %(levelname)s: %(message)s'
@@ -68,6 +70,7 @@ class LvrLandAnalysis(object):
         總件數
         '''
         return df.shape[0]
+
     def count_total_berth(self, df):
         '''
         總車位數(透過交易筆棟數)
@@ -96,25 +99,53 @@ class LvrLandAnalysis(object):
             return f'save FAIL: {filename}'
 
 
+def get_csv_mapping():
+    with open('mapping.json') as f:
+        return json.load(f)
+
+
+def csv_to_es(filename):
+    '''
+    csv 傳送至 Elasticsearch
+    '''
+    es = Elasticsearch(['localhost'], port=9200)
+    mapping = get_csv_mapping()
+    es.indices.create(
+        index="csv_data",
+        body=mapping,
+        ignore=400,  # ignore 400 already exists code
+    )
+    with open(filename) as f:
+        reader = csv.DictReader(f)
+        helpers.bulk(es, reader, index='csv_data', raise_on_error=False)
+
+
 if __name__ == '__main__':
     # filter.csv
-    lvr_land = LvrLandAnalysis()
-    is_self_residence = lvr_land.is_self_residence()
-    is_self_residence_building = lvr_land.is_self_residence_building()
-    is_gte_floor_13 = lvr_land.is_gte_floor_13()
-    df_residence_gte_13 = lvr_land.df_lvrland[(is_self_residence & is_self_residence_building & is_gte_floor_13)]
-    logging.info(f'filer dataframe shape: {df_residence_gte_13.shape}')
-    lvr_land.df2csv(df_residence_gte_13, 'filter.csv')
+    if sys.argv[1] != 'update':
+        lvr_land = LvrLandAnalysis()
+        is_self_residence = lvr_land.is_self_residence()
+        is_self_residence_building = lvr_land.is_self_residence_building()
+        is_gte_floor_13 = lvr_land.is_gte_floor_13()
+        df_residence_gte_13 = lvr_land.df_lvrland[(is_self_residence & is_self_residence_building & is_gte_floor_13)]
+        logging.info(f'filer dataframe shape: {df_residence_gte_13.shape}')
+        lvr_land.df2csv(df_residence_gte_13, 'filter.csv')
 
-    # count.csv
-    total_case = lvr_land.count_total_case(df_residence_gte_13)
-    total_berth = lvr_land.count_total_berth(df_residence_gte_13)
-    avg_total_price = lvr_land.count_avg_total_price(df_residence_gte_13)
-    avg_total_berth_price = lvr_land.count_avg_total_berth_price(df_residence_gte_13)
-    count_data = {
-        '總件數': [total_case],
-        '總車位數': [total_berth],
-        '平均總價元': [avg_total_price],
-        '平均車位總價元': [avg_total_berth_price],
-    }
-    lvr_land.df2csv(count_data, 'count.csv')
+        # count.csv
+        total_case = lvr_land.count_total_case(df_residence_gte_13)
+        total_berth = lvr_land.count_total_berth(df_residence_gte_13)
+        avg_total_price = lvr_land.count_avg_total_price(df_residence_gte_13)
+        avg_total_berth_price = lvr_land.count_avg_total_berth_price(df_residence_gte_13)
+        count_data = {
+            '總件數': [total_case],
+            '總車位數': [total_berth],
+            '平均總價元': [avg_total_price],
+            '平均車位總價元': [avg_total_berth_price],
+        }
+        lvr_land.df2csv(count_data, 'count.csv')
+
+    # 'filter.csv' 傳送至 Elasticsearch
+    logging.info('send csv to Elasticsearch...')
+    target_file = 'filter.csv'
+    csv_to_es(target_file)
+    logging.info(f'{target_file} to Elasticsearch succeed')

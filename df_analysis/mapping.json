@@ -1,0 +1,90 @@
+{
+    "settings": {
+        "number_of_shards": 1
+    },
+    "mappings": {
+        "properties": {
+            "Building present situation pattern - room": {
+                "type": "long"
+            },
+            "The villages and towns urban district": {
+                "type": "keyword"
+            },
+            "Whether there is manages the organization": {
+                "type": "keyword"
+            },
+            "berth shifting total area square meter": {
+                "type": "double"
+            },
+            "building present situation pattern - compartmented": {
+                "type": "keyword"
+            },
+            "building present situation pattern - hall": {
+                "type": "long"
+            },
+            "building present situation pattern - health": {
+                "type": "long"
+            },
+            "building shifting total area": {
+                "type": "double"
+            },
+            "building state": {
+                "type": "keyword"
+            },
+            "construction to complete the years": {
+                "type": "double"
+            },
+            "df_name": {
+                "type": "keyword"
+            },
+            "land sector position building sector house number plate": {
+                "type": "keyword"
+            },
+            "land shifting total area square meter": {
+                "type": "double"
+            },
+            "main building materials": {
+                "type": "keyword"
+            },
+            "main use": {
+                "type": "keyword"
+            },
+            "serial number": {
+                "type": "keyword"
+            },
+            "shifting level": {
+                "type": "keyword"
+            },
+            "the berth category": {
+                "type": "keyword"
+            },
+            "the berth total price NTD": {
+                "type": "long"
+            },
+            "the note": {
+                "type": "text"
+            },
+            "the unit price (NTD / square meter)": {
+                "type": "double"
+            },
+            "the use zoning or compiles and checks": {
+                "type": "keyword"
+            },
+            "total floor number": {
+                "type": "keyword"
+            },
+            "total price NTD": {
+                "type": "long"
+            },
+            "transaction pen number": {
+                "type": "keyword"
+            },
+            "transaction sign": {
+                "type": "keyword"
+            },
+            "transaction year month and day": {
+                "type": "long"
+            }
+        }
+    }
+}
