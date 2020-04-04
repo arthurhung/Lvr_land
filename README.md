@@ -22,8 +22,11 @@
 - params 查詢物件
 
 - trade_type 
+
 A：不動產買賣
+
 B：預售屋買賣
+
 C：不動產租賃
 
 Example:
@@ -80,7 +83,7 @@ count.csv
 - 計算【平均總價元】
 - 計算【平均車位總價元】
 
-### Notes
+## Notes
 
 - 刪除 Elasticsearch csv 檔案
 `curl -XDELETE "localhost:9200/csv*"`
