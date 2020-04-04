@@ -3,3 +3,4 @@ requests
 aiohttp
 cn2an
 pandas
+elasticsearch
