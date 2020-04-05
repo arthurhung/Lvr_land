@@ -27,7 +27,7 @@ class LvrLandAnalysis(object):
         logging.info(f'source csv: [{len(source_csv)}]')
         for s in source_csv:
             sp = s.split('/')
-            year, season, city, trade_type = sp[3], sp[4], sp[5], sp[6]
+            year, season, trade_type, city = sp[3], sp[4], sp[5], sp[6]
             new_column = f'{year}_{season}_{city}_{trade_type}'
             temp_df_h1 = pd.read_csv(s, header=1)
             temp_df_h1['df_name'] = new_column
@@ -101,7 +101,7 @@ class LvrLandAnalysis(object):
             pd.DataFrame(df).to_csv(
                 f'{filename}',
                 index=0,
-                encoding='utf_8_sig',
+                # encoding='utf_8_sig',
             )
             logging.info(f'save succeed: {filename}')
             return f'save succeed: {filename}'

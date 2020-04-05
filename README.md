@@ -3,6 +3,10 @@
 1. 爬蟲(內政部不動產時價登錄網)
 2. pandas分析
 
+## Demo
+
+[Kibana](http://4962a33c.ngrok.io/app/kibana)
+
 ## Requirements
 
 `pip install -r requirements.txt`
@@ -57,7 +61,7 @@ Example:
 
 ### Docker ELK
 
-`docker compose -f docker_elk/docker-compose-elk.yml up`
+`docker compose -f docker_elk/docker-compose-elk.yml up -d`
 
 ### Analysis Data
 

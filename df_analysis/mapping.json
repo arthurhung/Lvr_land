@@ -84,6 +84,15 @@
             },
             "transaction year month and day": {
                 "type": "long"
+            },
+            "year_season": {
+                "type": "keyword"
+            },
+            "city": {
+                "type": "keyword"
+            },
+            "building_age": {
+                "type": "long"
             }
         }
     }
